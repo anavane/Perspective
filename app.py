@@ -1,4 +1,3 @@
-# app.py
 import io
 import numpy as np
 import matplotlib.pyplot as plt
@@ -61,20 +60,27 @@ grid_color = st.sidebar.color_picker("Grid line color", value="#222222")
 bg_color = st.sidebar.color_picker("Background color", value="#ffffff")
 
 # -------------------------
+# New: Direction selector
+# -------------------------
+direction = st.sidebar.selectbox(
+    "Converging lines direction",
+    ["Up", "Down", "Left", "Right"]
+)
+
+# -------------------------
 # Function to generate the grid
 # -------------------------
 def generate_perspective_grid(width, height, horizon_frac, vp_x_frac,
-                              n_converging, n_horizontal, line_thickness, grid_color, bg_color):
+                              n_converging, n_horizontal, line_thickness, grid_color, bg_color, direction):
     fig, ax = plt.subplots(figsize=(width/100, height/100), dpi=100)
     ax.set_facecolor(bg_color)
     ax.set_xlim(0, width)
     ax.set_ylim(0, height)
     
-    # Vanishing point
     vp_x = vp_x_frac * width
     vp_y = horizon_frac * height
     
-    # Horizontal guides
+    # Horizontal guides (y fijo)
     for i in range(n_horizontal):
         y = i * height / (n_horizontal - 1)
         ax.plot([0, width], [y, y], color=grid_color, linewidth=line_thickness)
@@ -82,12 +88,19 @@ def generate_perspective_grid(width, height, horizon_frac, vp_x_frac,
     # Converging lines
     for i in range(n_converging):
         x = i * width / (n_converging - 1)
-        ax.plot([x, vp_x], [height, vp_y], color=grid_color, linewidth=line_thickness)
+        y = i * height / (n_converging - 1)
+        if direction == "Up":
+            ax.plot([x, vp_x], [height, vp_y], color=grid_color, linewidth=line_thickness)
+        elif direction == "Down":
+            ax.plot([x, vp_x], [0, vp_y], color=grid_color, linewidth=line_thickness)
+        elif direction == "Left":
+            ax.plot([width, vp_x], [y, vp_y], color=grid_color, linewidth=line_thickness)
+        elif direction == "Right":
+            ax.plot([0, vp_x], [y, vp_y], color=grid_color, linewidth=line_thickness)
     
     ax.axis('off')
     fig.tight_layout(pad=0)
     
-    # Convert to PIL image
     buf = io.BytesIO()
     fig.savefig(buf, format="png", dpi=100, bbox_inches='tight', pad_inches=0)
     buf.seek(0)
@@ -100,8 +113,7 @@ def generate_perspective_grid(width, height, horizon_frac, vp_x_frac,
 # -------------------------
 grid_image = generate_perspective_grid(
     canvas_width, canvas_height, horizon_frac, vp_x_frac,
-    n_converging, n_horizontal, line_thickness, grid_color, bg_color
+    n_converging, n_horizontal, line_thickness, grid_color, bg_color, direction
 )
 
 st.image(grid_image, use_column_width=True)
-
