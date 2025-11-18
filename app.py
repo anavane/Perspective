@@ -59,5 +59,3 @@ line_thickness = st.sidebar.slider(
 
 grid_color = st.sidebar.color_picker("Grid line color", value="#222222")
 bg_color = st.sidebar.color_picker("Background color", value="#ffffff")
-
-s
