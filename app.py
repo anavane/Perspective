@@ -1,8 +1,7 @@
 import streamlit as st
 import plotly.graph_objects as go
 import numpy as np
-import io
-from PIL import Image
+import plotly.io as pio
 
 st.set_page_config(page_title="Interactive Perspective Grid", layout="wide")
 st.title("🎨 Interactive Perspective Grid Generator")
@@ -75,4 +74,43 @@ for vp in st.session_state.vp_positions:
     if dir in ["Up", "Down"]:
         starts = np.linspace(0, canvas_width, lines_per_vp)
         for sx in starts:
-            sy = canvas_height if_
+            sy = canvas_height if dir=="Up" else 0
+            x1, y1, x2, y2 = sx, sy, x_vp, y_vp
+            if enable_fisheye:
+                cx, cy = canvas_width/2, canvas_height/2
+                x1, y1 = fisheye(x1, y1, cx, cy, fisheye_strength)
+                x2, y2 = fisheye(x2, y2, cx, cy, fisheye_strength)
+            fig.add_shape(type="line", x0=x1, y0=y1, x1=x2, y1=y2,
+                          line=dict(color=line_color, width=line_thickness))
+    else:
+        starts = np.linspace(0, canvas_height, lines_per_vp)
+        for sy in starts:
+            sx = canvas_width if dir=="Left" else 0
+            x1, y1, x2, y2 = sx, sy, x_vp, y_vp
+            if enable_fisheye:
+                cx, cy = canvas_width/2, canvas_height/2
+                x1, y1 = fisheye(x1, y1, cx, cy, fisheye_strength)
+                x2, y2 = fisheye(x2, y2, cx, cy, fisheye_strength)
+            fig.add_shape(type="line", x0=x1, y0=y1, x1=x2, y1=y2,
+                          line=dict(color=line_color, width=line_thickness))
+
+# Draw VP points
+for i, vp in enumerate(st.session_state.vp_positions):
+    fig.add_trace(go.Scatter(x=[vp[0]], y=[vp[1]],
+                             mode="markers",
+                             marker=dict(size=12, color="red"),
+                             name=f"VP {i+1}"))
+
+# Layout
+fig.update_layout(width=canvas_width, height=canvas_height,
+                  xaxis=dict(range=[0, canvas_width], showgrid=False, zeroline=False),
+                  yaxis=dict(range=[0, canvas_height], showgrid=False, zeroline=False, scaleanchor="x"),
+                  dragmode="select")
+
+st.plotly_chart(fig)
+
+# -----------------------------
+# Export PNG
+# -----------------------------
+img_bytes = pio.to_image(fig, format='png')
+st.download_button("⬇️ Download PNG", data=img_bytes, file_name="perspective_grid.png", mime="image/png")
