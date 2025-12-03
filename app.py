@@ -1,153 +1,206 @@
-import io
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
+import io
 import streamlit as st
 
 # -------------------------
 # Page configuration
 # -------------------------
 st.set_page_config(
-    page_title="Advanced Multi-Vanishing Point Grid Generator",
+    page_title="Advanced Perspective Grid Generator",
     layout="wide"
 )
 
-st.title("🎨 Multi-Vanishing Point Perspective Grid Generator")
+st.title("🎨 Advanced Multi-Vanishing-Point Perspective Grid Generator")
 st.write(
-    "Generate professional 1 to 5-point perspective grids for drawing, storyboarding, design, and proportion studies."
+    "Generate advanced perspective grids with up to **five vanishing points**, "
+    "custom directions, presets, fish-eye distortion, and PNG export."
 )
 
 # -------------------------
-# Sidebar settings
+# Sidebar: Presets
+# -------------------------
+st.sidebar.header("Presets")
+
+preset = st.sidebar.selectbox(
+    "Choose a preset (optional):",
+    [
+        "None",
+        "Architecture",
+        "Interior Room",
+        "Comic Dynamic",
+        "Storyboard",
+        "Cartoon Fish-Eye"
+    ]
+)
+
+# -------------------------
+# Sidebar: Canvas Settings
 # -------------------------
 st.sidebar.header("Canvas Settings")
 
-canvas_width = st.sidebar.number_input(
-    "Canvas width (px)", min_value=400, max_value=3000, value=1200, step=100
-)
+canvas_width = st.sidebar.number_input("Canvas width (px)", 400, 3000, 1200, 50)
+canvas_height = st.sidebar.number_input("Canvas height (px)", 400, 3000, 800, 50)
 
-canvas_height = st.sidebar.number_input(
-    "Canvas height (px)", min_value=100, max_value=3000, value=800, step=50
-)
+line_thickness = st.sidebar.slider("Line thickness", 0.5, 4.0, 1.2, 0.1)
 
-bg_color = st.sidebar.color_picker("Background color", value="#ffffff")
+grid_color = st.sidebar.color_picker("Grid line color", "#222222")
+bg_color = st.sidebar.color_picker("Background color", "#ffffff")
 
 # -------------------------
-# Grid Settings
+# Sidebar: Fish-Eye Mode
 # -------------------------
-st.sidebar.header("Grid Settings")
+st.sidebar.header("Fish-Eye Distortion (Curvilinear)")
 
-perspective_type = st.sidebar.selectbox(
-    "Perspective type",
-    ["One-Point", "Two-Point", "Three-Point", "Four-Point", "Five-Point", "Fisheye"]
-)
+enable_fisheye = st.sidebar.checkbox("Enable fish-eye distortion", False)
 
-horizon_frac = st.sidebar.slider(
-    "Horizon height (fraction of canvas)",
-    min_value=0.05, max_value=0.95, value=0.45, step=0.01
-)
-
-# Up to 5 vanishing points
-vp_points = []
-vp_directions = []
-for i in range(5):
-    st.sidebar.markdown(f"**Vanishing Point {i+1}**")
-    x_frac = st.sidebar.slider(f"VP {i+1} X (fraction)", 0.0, 1.0, 0.5, 0.01)
-    y_frac = st.sidebar.slider(f"VP {i+1} Y (fraction)", 0.0, 1.0, horizon_frac, 0.01)
-    direction = st.sidebar.selectbox(f"VP {i+1} Direction", ["Up", "Down", "Left", "Right"], key=f"dir{i}")
-    vp_points.append((x_frac, y_frac))
-    vp_directions.append(direction)
-
-n_converging = st.sidebar.slider(
-    "Number of converging lines",
-    min_value=6, max_value=100, value=24, step=1
-)
-
-n_horizontal = st.sidebar.slider(
-    "Number of horizontal guides",
-    min_value=3, max_value=50, value=10, step=1
-)
-
-line_thickness = st.sidebar.slider(
-    "Line thickness",
-    min_value=0.5, max_value=4.0, value=1.2, step=0.1
-)
-
-line_opacity = st.sidebar.slider(
-    "Line opacity", min_value=0.1, max_value=1.0, value=1.0, step=0.05
-)
-
-grid_color = st.sidebar.color_picker("Grid line color", value="#222222")
+if enable_fisheye:
+    fisheye_strength = st.sidebar.slider(
+        "Distortion strength",
+        0.01, 2.0, 0.6, 0.01
+    )
 
 # -------------------------
-# Advanced options
+# Sidebar: Vanishing Points
 # -------------------------
-st.sidebar.header("Advanced Options")
+st.sidebar.header("Vanishing Points")
 
-reference_image_file = st.sidebar.file_uploader(
-    "Upload reference image (optional)", type=["png", "jpg", "jpeg"]
+num_vp = st.sidebar.slider("Number of vanishing points", 1, 5, 3)
+
+directions = ["Up", "Down", "Left", "Right"]
+
+vp_data = []
+
+# -------------------------
+# Apply presets (optional)
+# -------------------------
+def apply_preset(name):
+    if name == "Architecture":
+        return [
+            {"x": 0.5, "y": 0.5, "n": 40, "direction": "Up"},
+            {"x": 0.5, "y": 0.5, "n": 40, "direction": "Down"},
+            {"x": 0.5, "y": 0.5, "n": 40, "direction": "Left"},
+            {"x": 0.5, "y": 0.5, "n": 40, "direction": "Right"},
+        ]
+    if name == "Interior Room":
+        return [
+            {"x": 0.8, "y": 0.5, "n": 35, "direction": "Left"},
+            {"x": 0.2, "y": 0.5, "n": 35, "direction": "Right"},
+        ]
+    if name == "Comic Dynamic":
+        return [
+            {"x": 0.5, "y": 0.3, "n": 60, "direction": "Down"},
+            {"x": 0.2, "y": 0.8, "n": 40, "direction": "Right"},
+            {"x": 0.8, "y": 0.8, "n": 40, "direction": "Left"},
+        ]
+    if name == "Storyboard":
+        return [
+            {"x": 0.5, "y": 0.4, "n": 30, "direction": "Down"},
+        ]
+    if name == "Cartoon Fish-Eye":
+        return [
+            {"x": 0.5, "y": 0.5, "n": 100, "direction": "Up"},
+            {"x": 0.5, "y": 0.5, "n": 100, "direction": "Down"},
+            {"x": 0.5, "y": 0.5, "n": 100, "direction": "Left"},
+            {"x": 0.5, "y": 0.5, "n": 100, "direction": "Right"},
+        ]
+
+    return None
+
+
+preset_data = apply_preset(preset)
+
+# -------------------------
+# Manual vanishing points
+# -------------------------
+if preset == "None":
+    for i in range(num_vp):
+        st.sidebar.subheader(f"Vanishing Point {i+1}")
+
+        x = st.sidebar.slider(f"VP {i+1} - X position", 0.0, 1.0, 0.5, 0.01)
+        y = st.sidebar.slider(f"VP {i+1} - Y position", 0.0, 1.0, 0.5, 0.01)
+        n = st.sidebar.slider(f"VP {i+1} - Number of Lines", 5, 100, 20)
+        direction = st.sidebar.selectbox(
+            f"VP {i+1} Direction",
+            directions,
+            key=f"dir_{i}"
+        )
+
+        vp_data.append({"x": x, "y": y, "n": n, "direction": direction})
+else:
+    vp_data = preset_data
+
+# -------------------------
+# Perspective helpers
+# -------------------------
+def generate_lines(vp, width, height):
+    vp_x = vp["x"] * width
+    vp_y = vp["y"] * height
+    n = vp["n"]
+    direction = vp["direction"]
+
+    if direction == "Up":
+        targets = [(i, 0) for i in np.linspace(0, width, n)]
+    elif direction == "Down":
+        targets = [(i, height) for i in np.linspace(0, width, n)]
+    elif direction == "Left":
+        targets = [(0, i) for i in np.linspace(0, height, n)]
+    else:  # Right
+        targets = [(width, i) for i in np.linspace(0, height, n)]
+
+    return [((vp_x, vp_y), t) for t in targets]
+
+
+def apply_fisheye(x, y, cx, cy, strength):
+    dx = x - cx
+    dy = y - cy
+    dist = np.sqrt(dx * dx + dy * dy)
+
+    factor = 1 + strength * (dist / max(canvas_width, canvas_height)) ** 2
+
+    return cx + dx * factor, cy + dy * factor
+
+# -------------------------
+# Generate the grid
+# -------------------------
+fig, ax = plt.subplots(figsize=(canvas_width / 100, canvas_height / 100), dpi=100)
+ax.set_xlim(0, canvas_width)
+ax.set_ylim(canvas_height, 0)
+ax.set_facecolor(bg_color)
+
+for vp in vp_data:
+    lines = generate_lines(vp, canvas_width, canvas_height)
+
+    for (x1, y1), (x2, y2) in lines:
+        if enable_fisheye:
+            cx, cy = canvas_width / 2, canvas_height / 2
+            x1, y1 = apply_fisheye(x1, y1, cx, cy, fisheye_strength)
+            x2, y2 = apply_fisheye(x2, y2, cx, cy, fisheye_strength)
+
+        ax.plot([x1, x2], [y1, y2], color=grid_color, linewidth=line_thickness)
+
+ax.axis("off")
+
+# -------------------------
+# Convert figure to image
+# -------------------------
+buf = io.BytesIO()
+plt.savefig(buf, format="png", bbox_inches="tight", dpi=150)
+buf.seek(0)
+
+# -------------------------
+# Display
+# -------------------------
+st.image(buf, use_column_width=True)
+
+# -------------------------
+# Download button
+# -------------------------
+st.download_button(
+    label="⬇️ Download PNG",
+    data=buf,
+    file_name="perspective_grid.png",
+    mime="image/png"
 )
 
-show_cubes = st.sidebar.checkbox("Overlay cubes", value=False)
-
-# -------------------------
-# Function to generate grid
-# -------------------------
-def generate_grid(width, height, bg_color, perspective_type,
-                  vp_points, vp_directions, n_converging, n_horizontal,
-                  line_thickness, line_opacity, grid_color,
-                  reference_image=None, show_cubes=False):
-    
-    fig, ax = plt.subplots(figsize=(width/100, height/100), dpi=100)
-    ax.set_facecolor(bg_color)
-    ax.set_xlim(0, width)
-    ax.set_ylim(0, height)
-    
-    # Load reference image if provided
-    if reference_image:
-        ref_im = Image.open(reference_image)
-        ax.imshow(ref_im, extent=[0, width, 0, height])
-    
-    # Horizontal guides
-    for i in range(n_horizontal):
-        y = i * height / (n_horizontal - 1)
-        ax.plot([0, width], [y, y], color=grid_color, linewidth=line_thickness, alpha=line_opacity)
-    
-    # Function to draw converging lines to a vanishing point
-    def draw_lines(vp_x, vp_y, direction):
-        for i in range(n_converging):
-            x = i * width / (n_converging - 1)
-            y = i * height / (n_converging - 1)
-            if direction == "Up":
-                ax.plot([x, vp_x], [height, vp_y], color=grid_color, linewidth=line_thickness, alpha=line_opacity)
-            elif direction == "Down":
-                ax.plot([x, vp_x], [0, vp_y], color=grid_color, linewidth=line_thickness, alpha=line_opacity)
-            elif direction == "Left":
-                ax.plot([width, vp_x], [y, vp_y], color=grid_color, linewidth=line_thickness, alpha=line_opacity)
-            elif direction == "Right":
-                ax.plot([0, vp_x], [y, vp_y], color=grid_color, linewidth=line_thickness, alpha=line_opacity)
-    
-    # Draw vanishing points according to perspective type
-    vp_count = {
-        "One-Point": 1,
-        "Two-Point": 2,
-        "Three-Point": 3,
-        "Four-Point": 4,
-        "Five-Point": 5,
-        "Fisheye": 1
-    }[perspective_type]
-    
-    if perspective_type != "Fisheye":
-        for i in range(vp_count):
-            vp_x = vp_points[i][0]*width
-            vp_y = vp_points[i][1]*height
-            draw_lines(vp_x, vp_y, vp_directions[i])
-    else:
-        # Fisheye simulation
-        for i in range(n_converging):
-            theta = i / n_converging * 2 * np.pi
-            x = width/2 + np.cos(theta)*(width/2)
-            y = height/2 + np.sin(theta)*(height/2)
-            ax.plot([width/2, x], [height/2, y], color=grid_color, linewidth=line_thickness, alpha=line_opacity)
-    
-    # Optional ove
