@@ -1,73 +1,78 @@
+import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
-from PIL import Image
-import io
-import streamlit as st
 
-# -------------------------
-# Page configuration
-# -------------------------
-st.set_page_config(
-    page_title="Advanced Perspective Grid Generator",
-    layout="wide"
-)
+# ---------------------------------
+# Streamlit Page Config
+# ---------------------------------
+st.set_page_config(page_title="Perspective Grid Generator", layout="wide")
 
-st.title("🎨 Advanced Multi-Vanishing-Point Perspective Grid Generator")
+st.title("🎨 Perspective Grid Generator (1–5 Vanishing Points)")
 st.write(
-    "Generate advanced perspective grids with up to **five vanishing points**, "
-    "custom directions, presets, fish-eye distortion, and PNG export."
+    "Create customizable perspective grids with up to 5 independent vanishing points."
 )
 
-# -------------------------
-# Sidebar: Presets
-# -------------------------
-st.sidebar.header("Presets")
-
-preset = st.sidebar.selectbox(
-    "Choose a preset (optional):",
-    [
-        "None",
-        "Architecture",
-        "Interior Room",
-        "Comic Dynamic",
-        "Storyboard",
-        "Cartoon Fish-Eye"
-    ]
-)
-
-# -------------------------
-# Sidebar: Canvas Settings
-# -------------------------
+# ---------------------------------
+# Sidebar Settings
+# ---------------------------------
 st.sidebar.header("Canvas Settings")
 
-canvas_width = st.sidebar.number_input("Canvas width (px)", 400, 3000, 1200, 50)
-canvas_height = st.sidebar.number_input("Canvas height (px)", 400, 3000, 800, 50)
+canvas_width = st.sidebar.number_input("Canvas width (px)", 400, 3000, 1200, 100)
+canvas_height = st.sidebar.number_input("Canvas height (px)", 200, 3000, 800, 100)
 
-line_thickness = st.sidebar.slider("Line thickness", 0.5, 4.0, 1.2, 0.1)
-
-grid_color = st.sidebar.color_picker("Grid line color", "#222222")
 bg_color = st.sidebar.color_picker("Background color", "#ffffff")
+line_color = st.sidebar.color_picker("Line color", "#222222")
+line_thickness = st.sidebar.slider("Line thickness", 0.5, 5.0, 1.5, 0.1)
 
-# -------------------------
-# Sidebar: Fish-Eye Mode
-# -------------------------
-st.sidebar.header("Fish-Eye Distortion (Curvilinear)")
+st.sidebar.header("Perspective Settings")
 
-enable_fisheye = st.sidebar.checkbox("Enable fish-eye distortion", False)
+vp_count = st.sidebar.slider(
+    "Number of vanishing points", 
+    min_value=1, 
+    max_value=5, 
+    value=2, 
+    step=1
+)
 
-if enable_fisheye:
-    fisheye_strength = st.sidebar.slider(
-        "Distortion strength",
-        0.01, 2.0, 0.6, 0.01
+# ---------------------------------
+# Default VP presets (for convenience)
+# ---------------------------------
+default_vp = [
+    {"x": 0.5, "y": 0.5, "n": 25},
+    {"x": 0.25, "y": 0.5, "n": 25},
+    {"x": 0.75, "y": 0.5, "n": 25},
+    {"x": 0.5, "y": 0.25, "n": 25},
+    {"x": 0.5, "y": 0.75, "n": 25},
+]
+
+# ---------------------------------
+# Collect Vanishing Points
+# ---------------------------------
+vp_list = []
+
+st.sidebar.subheader("Vanishing Points Controls")
+
+for i in range(vp_count):
+
+    st.sidebar.markdown(f"### VP {i+1}")
+
+    x = st.sidebar.slider(
+        f"VP {i+1} X (fraction)", 
+        0.0, 1.0, default_vp[i]["x"], 0.01
+    )
+    y = st.sidebar.slider(
+        f"VP {i+1} Y (fraction)", 
+        0.0, 1.0, default_vp[i]["y"], 0.01
+    )
+    n = st.sidebar.slider(
+        f"VP {i+1}: Number of lines", 
+        5, 80, default_vp[i]["n"], 1
     )
 
-# -------------------------
-# Presets definition
-# -------------------------
-def apply_preset(name):
-    if name == "Architecture":
-        return [
-            {"x": 0.5, "y": 0.5, "n": 40, "direction": "Up"},
-            {"x": 0.5, "y": 0.5, "n": 40, "direction": "Down"},
-            {"x": 0.5, "y": 0.5, "n":
+    vp_list.append({
+        "x": x * canvas_width,
+        "y": y * canvas_height,
+        "n": n
+    })
 
+# ----
