@@ -88,6 +88,19 @@ for i in range(vp_count):
     st.session_state.vp_styles[i] = style
 
 # -----------------------------
+# Layers / Capas
+# -----------------------------
+st.sidebar.markdown("### Layers / Capas")
+show_grid = st.sidebar.checkbox("Show Grid", True)
+show_horizon = st.sidebar.checkbox("Show Horizon", True)
+show_vp = [st.sidebar.checkbox(f"Show VP {i+1}", True) for i in range(vp_count)]
+show_planes = {}
+for plane in ["Floor", "Wall", "Ceiling"]:
+    show_planes[plane] = st.sidebar.checkbox(f"Show {plane} plane", True)
+show_guides = st.sidebar.checkbox("Show Proportion Guides", True)
+n_guides = st.sidebar.slider("Number of proportion guides", 2, 20, 5)
+
+# -----------------------------
 # Helper functions
 # -----------------------------
 def fisheye(x, y, cx, cy, strength):
@@ -114,53 +127,65 @@ fig = go.Figure()
 fig.update_layout(plot_bgcolor=bg_color, paper_bgcolor=bg_color)
 
 # Grid
-grid_spacing = 50
-for gx in np.arange(0, canvas_width, grid_spacing):
-    fig.add_shape(type="line", x0=gx, y0=0, x1=gx, y1=canvas_height, line=dict(color=grid_rgba, width=1, dash="dot"))
-for gy in np.arange(0, canvas_height, grid_spacing):
-    fig.add_shape(type="line", x0=0, y0=gy, x1=canvas_width, y1=gy, line=dict(color=grid_rgba, width=1, dash="dot"))
+if show_grid:
+    grid_spacing = 50
+    for gx in np.arange(0, canvas_width, grid_spacing):
+        fig.add_shape(type="line", x0=gx, y0=0, x1=gx, y1=canvas_height, line=dict(color=grid_rgba, width=1, dash="dot"))
+    for gy in np.arange(0, canvas_height, grid_spacing):
+        fig.add_shape(type="line", x0=0, y0=gy, x1=canvas_width, y1=gy, line=dict(color=grid_rgba, width=1, dash="dot"))
 
 # Horizon line
-fig.add_shape(type="line", x0=0, y0=horizon_y, x1=canvas_width, y1=horizon_y, line=dict(color="blue", width=2, dash="dash"))
+if show_horizon:
+    fig.add_shape(type="line", x0=0, y0=horizon_y, x1=canvas_width, y1=horizon_y, line=dict(color="blue", width=2, dash="dash"))
 
 # Lines towards VPs
 for i, vp in enumerate(st.session_state.vp_positions):
-    x_vp, y_vp, dir = vp
-    vp_color = st.session_state.vp_colors[i]
-    vp_style = st.session_state.vp_styles[i]
-    if dir in ["Up", "Down"]:
-        starts = np.linspace(0, canvas_width, lines_per_vp)
-        for sx in starts:
-            sy = canvas_height if dir=="Up" else 0
-            x1, y1, x2, y2 = sx, sy, x_vp, y_vp
-            if enable_fisheye:
-                x1, y1 = fisheye(x1, y1, canvas_width/2, canvas_height/2, fisheye_strength)
-                x2, y2 = fisheye(x2, y2, canvas_width/2, canvas_height/2, fisheye_strength)
-            if enable_curvature:
-                x1, y1 = curvature(x1, y1, canvas_width/2, canvas_height/2, curvature_strength)
-                x2, y2 = curvature(x2, y2, canvas_width/2, canvas_height/2, curvature_strength)
-            fig.add_shape(type="line", x0=x1, y0=y1, x1=x2, y1=y2, line=dict(color=vp_color, width=2, dash=vp_style))
-    else:
-        starts = np.linspace(0, canvas_height, lines_per_vp)
-        for sy in starts:
-            sx = canvas_width if dir=="Left" else 0
-            x1, y1, x2, y2 = sx, sy, x_vp, y_vp
-            if enable_fisheye:
-                x1, y1 = fisheye(x1, y1, canvas_width/2, canvas_height/2, fisheye_strength)
-                x2, y2 = fisheye(x2, y2, canvas_width/2, canvas_height/2, fisheye_strength)
-            if enable_curvature:
-                x1, y1 = curvature(x1, y1, canvas_width/2, canvas_height/2, curvature_strength)
-                x2, y2 = curvature(x2, y2, canvas_width/2, canvas_height/2, curvature_strength)
-            fig.add_shape(type="line", x0=x1, y0=y1, x1=x2, y1=y2, line=dict(color=vp_color, width=2, dash=vp_style))
+    if show_vp[i]:
+        x_vp, y_vp, dir = vp
+        vp_color = st.session_state.vp_colors[i]
+        vp_style = st.session_state.vp_styles[i]
+        if dir in ["Up", "Down"]:
+            starts = np.linspace(0, canvas_width, lines_per_vp)
+            for sx in starts:
+                sy = canvas_height if dir=="Up" else 0
+                x1, y1, x2, y2 = sx, sy, x_vp, y_vp
+                if enable_fisheye:
+                    x1, y1 = fisheye(x1, y1, canvas_width/2, canvas_height/2, fisheye_strength)
+                    x2, y2 = fisheye(x2, y2, canvas_width/2, canvas_height/2, fisheye_strength)
+                if enable_curvature:
+                    x1, y1 = curvature(x1, y1, canvas_width/2, canvas_height/2, curvature_strength)
+                    x2, y2 = curvature(x2, y2, canvas_width/2, canvas_height/2, curvature_strength)
+                fig.add_shape(type="line", x0=x1, y0=y1, x1=x2, y1=y2, line=dict(color=vp_color, width=2, dash=vp_style))
+        else:
+            starts = np.linspace(0, canvas_height, lines_per_vp)
+            for sy in starts:
+                sx = canvas_width if dir=="Left" else 0
+                x1, y1, x2, y2 = sx, sy, x_vp, y_vp
+                if enable_fisheye:
+                    x1, y1 = fisheye(x1, y1, canvas_width/2, canvas_height/2, fisheye_strength)
+                    x2, y2 = fisheye(x2, y2, canvas_width/2, canvas_height/2, fisheye_strength)
+                if enable_curvature:
+                    x1, y1 = curvature(x1, y1, canvas_width/2, canvas_height/2, curvature_strength)
+                    x2, y2 = curvature(x2, y2, canvas_width/2, canvas_height/2, curvature_strength)
+                fig.add_shape(type="line", x0=x1, y0=y1, x1=x2, y1=y2, line=dict(color=vp_color, width=2, dash=vp_style))
 
 # VP markers
 for i, vp in enumerate(st.session_state.vp_positions):
-    fig.add_trace(go.Scatter(x=[vp[0]], y=[vp[1]], mode="markers", marker=dict(size=12, color="red"), name=f"VP {i+1}"))
+    if show_vp[i]:
+        fig.add_trace(go.Scatter(x=[vp[0]], y=[vp[1]], mode="markers", marker=dict(size=12, color="red"), name=f"VP {i+1}"))
 
 # Markers for planes
-for name, pos in marker_planes.items():
-    fig.add_trace(go.Scatter(x=[pos[0]], y=[pos[1]], mode="markers+text", marker=dict(size=10, color="green"),
-                             text=[name], textposition="top center"))
+for plane, pos in marker_planes.items():
+    if show_planes[plane]:
+        fig.add_trace(go.Scatter(x=[pos[0]], y=[pos[1]], mode="markers+text", marker=dict(size=10, color="green"),
+                                 text=[plane], textposition="top center"))
+
+# Proportion guides
+if show_guides:
+    for i in range(1, n_guides):
+        y = horizon_y + i*(canvas_height-horizon_y)/n_guides
+        fig.add_shape(type="line", x0=0, y0=y, x1=canvas_width, y1=y,
+                      line=dict(color="gray", width=1, dash="dot", opacity=0.3))
 
 # Layout
 fig.update_layout(width=canvas_width, height=canvas_height,
@@ -177,6 +202,6 @@ st.plotly_chart(fig, use_container_width=True)
 try:
     img_bytes = pio.to_image(fig, format='png')
     st.download_button("⬇️ Download PNG", data=img_bytes, file_name="perspective_grid.png", mime="image/png")
-except Exception as e:
+except:
     st.warning("PNG export requires 'kaleido'. Add 'kaleido' to requirements.txt")
 
