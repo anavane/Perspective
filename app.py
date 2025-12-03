@@ -35,15 +35,12 @@ if 'vp_styles' not in st.session_state:
     st.session_state.vp_styles = ["solid" for _ in range(vp_count)]
 
 # Adjust size if vp_count changes
-if len(st.session_state.vp_positions) < vp_count:
-    for i in range(len(st.session_state.vp_positions), vp_count):
-        st.session_state.vp_positions.append([canvas_width*0.5, canvas_height*0.5, directions[i%4]])
-if len(st.session_state.vp_colors) < vp_count:
-    for i in range(len(st.session_state.vp_colors), vp_count):
-        st.session_state.vp_colors.append("#222222")
-if len(st.session_state.vp_styles) < vp_count:
-    for i in range(len(st.session_state.vp_styles), vp_count):
-        st.session_state.vp_styles.append("solid")
+while len(st.session_state.vp_positions) < vp_count:
+    st.session_state.vp_positions.append([canvas_width*0.5, canvas_height*0.5, directions[len(st.session_state.vp_positions)%4]])
+while len(st.session_state.vp_colors) < vp_count:
+    st.session_state.vp_colors.append("#222222")
+while len(st.session_state.vp_styles) < vp_count:
+    st.session_state.vp_styles.append("solid")
 
 # -----------------------------
 # Horizon
@@ -130,13 +127,16 @@ fig.update_layout(plot_bgcolor=bg_color, paper_bgcolor=bg_color)
 if show_grid:
     grid_spacing = 50
     for gx in np.arange(0, canvas_width, grid_spacing):
-        fig.add_shape(type="line", x0=gx, y0=0, x1=gx, y1=canvas_height, line=dict(color=grid_rgba, width=1, dash="dot"))
+        fig.add_shape(type="line", x0=gx, y0=0, x1=gx, y1=canvas_height,
+                      line=dict(color=grid_rgba, width=1, dash="dot"))
     for gy in np.arange(0, canvas_height, grid_spacing):
-        fig.add_shape(type="line", x0=0, y0=gy, x1=canvas_width, y1=gy, line=dict(color=grid_rgba, width=1, dash="dot"))
+        fig.add_shape(type="line", x0=0, y0=gy, x1=canvas_width, y1=gy,
+                      line=dict(color=grid_rgba, width=1, dash="dot"))
 
 # Horizon line
 if show_horizon:
-    fig.add_shape(type="line", x0=0, y0=horizon_y, x1=canvas_width, y1=horizon_y, line=dict(color="blue", width=2, dash="dash"))
+    fig.add_shape(type="line", x0=0, y0=horizon_y, x1=canvas_width, y1=horizon_y,
+                  line=dict(color="blue", width=2, dash="dash"))
 
 # Lines towards VPs
 for i, vp in enumerate(st.session_state.vp_positions):
@@ -155,7 +155,8 @@ for i, vp in enumerate(st.session_state.vp_positions):
                 if enable_curvature:
                     x1, y1 = curvature(x1, y1, canvas_width/2, canvas_height/2, curvature_strength)
                     x2, y2 = curvature(x2, y2, canvas_width/2, canvas_height/2, curvature_strength)
-                fig.add_shape(type="line", x0=x1, y0=y1, x1=x2, y1=y2, line=dict(color=vp_color, width=2, dash=vp_style))
+                fig.add_shape(type="line", x0=x1, y0=y1, x1=x2, y1=y2,
+                              line=dict(color=vp_color, width=2, dash=vp_style))
         else:
             starts = np.linspace(0, canvas_height, lines_per_vp)
             for sy in starts:
@@ -167,7 +168,8 @@ for i, vp in enumerate(st.session_state.vp_positions):
                 if enable_curvature:
                     x1, y1 = curvature(x1, y1, canvas_width/2, canvas_height/2, curvature_strength)
                     x2, y2 = curvature(x2, y2, canvas_width/2, canvas_height/2, curvature_strength)
-                fig.add_shape(type="line", x0=x1, y0=y1, x1=x2, y1=y2, line=dict(color=vp_color, width=2, dash=vp_style))
+                fig.add_shape(type="line", x0=x1, y0=y1, x1=x2, y1=y2,
+                              line=dict(color=vp_color, width=2, dash=vp_style))
 
 # VP markers
 for i, vp in enumerate(st.session_state.vp_positions):
@@ -185,7 +187,7 @@ if show_guides:
     for i in range(1, n_guides):
         y = horizon_y + i*(canvas_height-horizon_y)/n_guides
         fig.add_shape(type="line", x0=0, y0=y, x1=canvas_width, y1=y,
-                      line=dict(color="gray", width=1, dash="dot", opacity=0.3))
+                      line=dict(color="rgba(128,128,128,0.3)", width=1, dash="dot"))
 
 # Layout
 fig.update_layout(width=canvas_width, height=canvas_height,
