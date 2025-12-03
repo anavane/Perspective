@@ -1,6 +1,7 @@
 import streamlit as st
 import plotly.graph_objects as go
 import numpy as np
+import matplotlib.colors as mcolors
 import plotly.io as pio
 
 st.set_page_config(page_title="Interactive Perspective Grid", layout="wide")
@@ -55,6 +56,16 @@ def fisheye(x, y, cx, cy, strength):
     return cx + dx*factor, cy + dy*factor
 
 # -----------------------------
+# Convert hex to rgba
+# -----------------------------
+def hex_to_rgba(hex_color, alpha):
+    rgb = mcolors.hex2color(hex_color)
+    rgba = f"rgba({int(rgb[0]*255)},{int(rgb[1]*255)},{int(rgb[2]*255)},{alpha})"
+    return rgba
+
+grid_rgba = hex_to_rgba(grid_color, grid_opacity)
+
+# -----------------------------
 # Generate lines
 # -----------------------------
 fig = go.Figure()
@@ -63,10 +74,10 @@ fig = go.Figure()
 grid_spacing = 50
 for gx in np.arange(0, canvas_width, grid_spacing):
     fig.add_shape(type="line", x0=gx, y0=0, x1=gx, y1=canvas_height,
-                  line=dict(color=grid_color, width=1, dash="dot", opacity=grid_opacity))
+                  line=dict(color=grid_rgba, width=1, dash="dot"))
 for gy in np.arange(0, canvas_height, grid_spacing):
     fig.add_shape(type="line", x0=0, y0=gy, x1=canvas_width, y1=gy,
-                  line=dict(color=grid_color, width=1, dash="dot", opacity=grid_opacity))
+                  line=dict(color=grid_rgba, width=1, dash="dot"))
 
 # Draw lines towards VPs
 for vp in st.session_state.vp_positions:
@@ -114,3 +125,4 @@ st.plotly_chart(fig)
 # -----------------------------
 img_bytes = pio.to_image(fig, format='png')
 st.download_button("⬇️ Download PNG", data=img_bytes, file_name="perspective_grid.png", mime="image/png")
+
