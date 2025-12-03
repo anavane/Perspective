@@ -29,19 +29,28 @@ if enable_fisheye:
 vp_count = st.sidebar.slider("Number of vanishing points", 1, 5, 2)
 directions = ["Up", "Down", "Left", "Right"]
 
-# Initialize VP positions and colors
-if 'vp_positions' not in st.session_state or len(st.session_state.vp_positions) != vp_count:
-    st.session_state.vp_positions = []
-    st.session_state.vp_colors = []
-    for i in range(vp_count):
+# -----------------------------
+# Initialize SessionState safely
+# -----------------------------
+if 'vp_positions' not in st.session_state:
+    st.session_state.vp_positions = [[canvas_width*0.5, canvas_height*0.5, directions[i%4]] for i in range(vp_count)]
+
+if 'vp_colors' not in st.session_state:
+    st.session_state.vp_colors = ["#222222" for _ in range(vp_count)]
+
+# Adjust size if vp_count changes
+if len(st.session_state.vp_positions) < vp_count:
+    for i in range(len(st.session_state.vp_positions), vp_count):
         st.session_state.vp_positions.append([canvas_width*0.5, canvas_height*0.5, directions[i%4]])
+if len(st.session_state.vp_colors) < vp_count:
+    for i in range(len(st.session_state.vp_colors), vp_count):
         st.session_state.vp_colors.append("#222222")
 
 # Lines per VP
 lines_per_vp = st.sidebar.slider("Number of lines per VP", 2, 80, 20)
 
 # -----------------------------
-# Helpers
+# Helper functions
 # -----------------------------
 def fisheye(x, y, cx, cy, strength):
     dx, dy = x-cx, y-cy
@@ -73,8 +82,6 @@ for i in range(vp_count):
 # Generate figure
 # -----------------------------
 fig = go.Figure()
-
-# Background
 fig.update_layout(plot_bgcolor=bg_color, paper_bgcolor=bg_color)
 
 # Grid
@@ -139,4 +146,5 @@ try:
     st.download_button("⬇️ Download PNG", data=img_bytes, file_name="perspective_grid.png", mime="image/png")
 except Exception as e:
     st.warning("PNG export requires 'kaleido'. Add 'kaleido' to requirements.txt")
+
 
