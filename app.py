@@ -13,7 +13,6 @@ st.title("🎨 Interactive Perspective Grid Generator")
 canvas_width = st.sidebar.number_input("Canvas width (px)", 400, 3000, 1200, 100)
 canvas_height = st.sidebar.number_input("Canvas height (px)", 200, 3000, 800, 50)
 bg_color = st.sidebar.color_picker("Background color", "#ffffff")
-line_thickness = st.sidebar.slider("Line thickness", 0.5, 5.0, 1.5, 0.1)
 grid_color = st.sidebar.color_picker("Grid color", "#888888")
 grid_opacity = st.sidebar.slider("Grid opacity", 0.05, 0.5, 0.2, 0.01)
 
@@ -38,25 +37,55 @@ if 'vp_positions' not in st.session_state:
 if 'vp_colors' not in st.session_state:
     st.session_state.vp_colors = ["#222222" for _ in range(vp_count)]
 
-# Adjust size if vp_count changes
-if len(st.session_state.vp_positions) < vp_count:
-    for i in range(len(st.session_state.vp_positions), vp_count):
-        st.session_state.vp_positions.append([canvas_width*0.5, canvas_height*0.5, directions[i%4]])
-if len(st.session_state.vp_colors) < vp_count:
-    for i in range(len(st.session_state.vp_colors), vp_count):
-        st.session_state.vp_colors.append("#222222")
+if 'vp_lines_count' not in st.session_state:
+    st.session_state.vp_lines_count = [20 for _ in range(vp_count)]
 
-# Lines per VP
-lines_per_vp = st.sidebar.slider("Number of lines per VP", 2, 80, 20)
+if 'vp_styles' not in st.session_state:
+    st.session_state.vp_styles = ["solid" for _ in range(vp_count)]
+
+# Adjust size if vp_count changes
+while len(st.session_state.vp_positions) < vp_count:
+    st.session_state.vp_positions.append([canvas_width*0.5, canvas_height*0.5, directions[len(st.session_state.vp_positions)%4]])
+while len(st.session_state.vp_colors) < vp_count:
+    st.session_state.vp_colors.append("#222222")
+while len(st.session_state.vp_lines_count) < vp_count:
+    st.session_state.vp_lines_count.append(20)
+while len(st.session_state.vp_styles) < vp_count:
+    st.session_state.vp_styles.append("solid")
+
+# -----------------------------
+# Tabs for UI
+# -----------------------------
+tab1, tab2 = st.tabs(["General", "Vanishing Points"])
+
+with tab1:
+    line_thickness = st.slider("Line thickness", 0.5, 5.0, 1.5, 0.1)
+    grid_spacing = st.slider("Grid spacing (px)", 20, 200, 50, 5)
+    horizon_line = st.checkbox("Show horizon line", True)
+
+with tab2:
+    st.sidebar.markdown("### Vanishing Points Controls")
+    for i in range(vp_count):
+        st.markdown(f"**VP {i+1}**")
+        x = st.slider(f"VP {i+1} X (px)", 0, canvas_width, int(st.session_state.vp_positions[i][0]))
+        y = st.slider(f"VP {i+1} Y (px)", 0, canvas_height, int(st.session_state.vp_positions[i][1]))
+        dir = st.selectbox(f"VP {i+1} direction", directions, index=directions.index(st.session_state.vp_positions[i][2]))
+        color = st.color_picker(f"VP {i+1} line color", st.session_state.vp_colors[i])
+        lines_count = st.slider(f"VP {i+1} number of lines", 2, 80, st.session_state.vp_lines_count[i])
+        style = st.selectbox(f"VP {i+1} line style", ["solid", "dot"], index=["solid", "dot"].index(st.session_state.vp_styles[i]))
+        st.session_state.vp_positions[i] = [x, y, dir]
+        st.session_state.vp_colors[i] = color
+        st.session_state.vp_lines_count[i] = lines_count
+        st.session_state.vp_styles[i] = style
 
 # -----------------------------
 # Helper functions
 # -----------------------------
 def fisheye(x, y, cx, cy, strength):
-    dx, dy = x-cx, y-cy
+    dx, dy = x - cx, y - cy
     dist = np.sqrt(dx**2 + dy**2)
-    factor = 1 + strength*(dist/max(canvas_width, canvas_height))**2
-    return cx + dx*factor, cy + dy*factor
+    factor = 1 + strength * (dist / max(canvas_width, canvas_height)) ** 2
+    return cx + dx * factor, cy + dy * factor
 
 def hex_to_rgba(hex_color, alpha):
     rgb = mcolors.hex2color(hex_color)
@@ -66,26 +95,12 @@ def hex_to_rgba(hex_color, alpha):
 grid_rgba = hex_to_rgba(grid_color, grid_opacity)
 
 # -----------------------------
-# VP controls in sidebar
-# -----------------------------
-st.sidebar.markdown("### Vanishing Points Controls")
-for i in range(vp_count):
-    st.sidebar.markdown(f"**VP {i+1}**")
-    x = st.sidebar.slider(f"VP {i+1} X (px)", 0, canvas_width, int(st.session_state.vp_positions[i][0]))
-    y = st.sidebar.slider(f"VP {i+1} Y (px)", 0, canvas_height, int(st.session_state.vp_positions[i][1]))
-    dir = st.sidebar.selectbox(f"VP {i+1} direction", directions, index=directions.index(st.session_state.vp_positions[i][2]))
-    color = st.sidebar.color_picker(f"VP {i+1} line color", st.session_state.vp_colors[i])
-    st.session_state.vp_positions[i] = [x, y, dir]
-    st.session_state.vp_colors[i] = color
-
-# -----------------------------
 # Generate figure
 # -----------------------------
 fig = go.Figure()
 fig.update_layout(plot_bgcolor=bg_color, paper_bgcolor=bg_color)
 
 # Grid
-grid_spacing = 50
 for gx in np.arange(0, canvas_width, grid_spacing):
     fig.add_shape(type="line", x0=gx, y0=0, x1=gx, y1=canvas_height,
                   line=dict(color=grid_rgba, width=1, dash="dot"))
@@ -93,12 +108,22 @@ for gy in np.arange(0, canvas_height, grid_spacing):
     fig.add_shape(type="line", x0=0, y0=gy, x1=canvas_width, y1=gy,
                   line=dict(color=grid_rgba, width=1, dash="dot"))
 
+# Horizon line
+if horizon_line and vp_count > 0:
+    horizon_y = st.session_state.vp_positions[0][1]
+    fig.add_shape(type="line", x0=0, y0=horizon_y, x1=canvas_width, y1=horizon_y,
+                  line=dict(color="gray", width=1, dash="dash"))
+
 # Lines towards VPs
 for i, vp in enumerate(st.session_state.vp_positions):
     x_vp, y_vp, dir = vp
     vp_color = st.session_state.vp_colors[i]
+    lines_count = st.session_state.vp_lines_count[i]
+    style = st.session_state.vp_styles[i]
+    dash_type = "dot" if style == "dot" else "solid"
+    
     if dir in ["Up", "Down"]:
-        starts = np.linspace(0, canvas_width, lines_per_vp)
+        starts = np.linspace(0, canvas_width, lines_count)
         for sx in starts:
             sy = canvas_height if dir=="Up" else 0
             x1, y1, x2, y2 = sx, sy, x_vp, y_vp
@@ -107,9 +132,9 @@ for i, vp in enumerate(st.session_state.vp_positions):
                 x1, y1 = fisheye(x1, y1, cx, cy, fisheye_strength)
                 x2, y2 = fisheye(x2, y2, cx, cy, fisheye_strength)
             fig.add_shape(type="line", x0=x1, y0=y1, x1=x2, y1=y2,
-                          line=dict(color=vp_color, width=line_thickness))
+                          line=dict(color=vp_color, width=line_thickness, dash=dash_type))
     else:
-        starts = np.linspace(0, canvas_height, lines_per_vp)
+        starts = np.linspace(0, canvas_height, lines_count)
         for sy in starts:
             sx = canvas_width if dir=="Left" else 0
             x1, y1, x2, y2 = sx, sy, x_vp, y_vp
@@ -118,7 +143,7 @@ for i, vp in enumerate(st.session_state.vp_positions):
                 x1, y1 = fisheye(x1, y1, cx, cy, fisheye_strength)
                 x2, y2 = fisheye(x2, y2, cx, cy, fisheye_strength)
             fig.add_shape(type="line", x0=x1, y0=y1, x1=x2, y1=y2,
-                          line=dict(color=vp_color, width=line_thickness))
+                          line=dict(color=vp_color, width=line_thickness, dash=dash_type))
 
 # VP markers
 for i, vp in enumerate(st.session_state.vp_positions):
@@ -144,7 +169,6 @@ st.plotly_chart(fig, use_container_width=True)
 try:
     img_bytes = pio.to_image(fig, format='png')
     st.download_button("⬇️ Download PNG", data=img_bytes, file_name="perspective_grid.png", mime="image/png")
-except Exception as e:
+except Exception:
     st.warning("PNG export requires 'kaleido'. Add 'kaleido' to requirements.txt")
-
 
