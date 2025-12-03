@@ -6,7 +6,7 @@ import io
 # -----------------------------
 # Page Config
 # -----------------------------
-st.set_page_config(page_title="Advanced Perspective Grid Generator", layout="wide")
+st.set_page_config(page_title="Perspective Grid Generator", layout="wide")
 st.title("🎨 Advanced Perspective Grid Generator")
 st.write("Create perspective grids with up to 5 vanishing points, fish-eye distortion, and presets.")
 
@@ -45,24 +45,26 @@ vp_count = st.sidebar.slider("Number of vanishing points", 1, 5, 2)
 directions = ["Up", "Down", "Left", "Right"]
 
 # -----------------------------
-# Presets Data
+# Presets Data (Corrected)
 # -----------------------------
 def apply_preset(name, w, h):
     if name == "Architecture":
         return [
-            {"x": 0.5*w, "y": 0.5*h, "n": 40, "dir":"Up"},
-            {"x": 0.5*w, "y": 0.5*h, "n": 40, "dir":"Down"},
-            {"x": 0.5*w, "y": 0.5*h, "n": 40, "dir":"Left"},
-            {"x": 0.5*w, "y": 0.5*h, "n": 40, "dir":"Right"},
+            {"x": 0.2*w, "y": 0.2*h, "n": 30, "dir":"Down"},
+            {"x": 0.8*w, "y": 0.2*h, "n": 30, "dir":"Down"},
+            {"x": 0.2*w, "y": 0.8*h, "n": 30, "dir":"Up"},
+            {"x": 0.8*w, "y": 0.8*h, "n": 30, "dir":"Up"},
         ]
     if name == "Interior Room":
         return [
-            {"x": 0.8*w, "y": 0.5*h, "n": 35, "dir":"Left"},
-            {"x": 0.2*w, "y": 0.5*h, "n": 35, "dir":"Right"},
+            {"x": 0.25*w, "y": 0.25*h, "n": 30, "dir":"Down"},
+            {"x": 0.75*w, "y": 0.25*h, "n": 30, "dir":"Down"},
+            {"x": 0.25*w, "y": 0.75*h, "n": 30, "dir":"Up"},
+            {"x": 0.75*w, "y": 0.75*h, "n": 30, "dir":"Up"},
         ]
     if name == "Comic Dynamic":
         return [
-            {"x": 0.5*w, "y": 0.3*h, "n": 60, "dir":"Down"},
+            {"x": 0.5*w, "y": 0.2*h, "n": 40, "dir":"Down"},
             {"x": 0.2*w, "y": 0.8*h, "n": 40, "dir":"Right"},
             {"x": 0.8*w, "y": 0.8*h, "n": 40, "dir":"Left"},
         ]
@@ -72,10 +74,10 @@ def apply_preset(name, w, h):
         ]
     if name == "Cartoon Fish-Eye":
         return [
-            {"x": 0.5*w, "y": 0.5*h, "n": 100, "dir":"Up"},
-            {"x": 0.5*w, "y": 0.5*h, "n": 100, "dir":"Down"},
-            {"x": 0.5*w, "y": 0.5*h, "n": 100, "dir":"Left"},
-            {"x": 0.5*w, "y": 0.5*h, "n": 100, "dir":"Right"},
+            {"x": 0.2*w, "y": 0.2*h, "n": 50, "dir":"Down"},
+            {"x": 0.8*w, "y": 0.2*h, "n": 50, "dir":"Down"},
+            {"x": 0.2*w, "y": 0.8*h, "n": 50, "dir":"Up"},
+            {"x": 0.8*w, "y": 0.8*h, "n": 50, "dir":"Up"},
         ]
     return None
 
@@ -156,4 +158,3 @@ st.download_button(
     file_name="perspective_grid.png",
     mime="image/png"
 )
-
