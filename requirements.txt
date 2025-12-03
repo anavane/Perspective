@@ -1,4 +1,4 @@
 streamlit
 numpy
-matplotlib
-pillow
+plotly
+Pillow
